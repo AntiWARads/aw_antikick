@@ -4,7 +4,7 @@ local kick_command_id = 1;
 local kick_potential_votes = 0;
 local kick_yes_voters = 0;
 local kick_getting_kicked = false;
-local kick_last_command_time = globals.CurTime();
+local kick_last_command_time;
 local ANTIKICK_CB = gui.Checkbox(gui.Reference("MISC", "AUTOMATION", "Other"), "ANTIKICK_CB", "Enable Anti Vote-kick", false);
 local ANTIKICK_VOTE_THRESHOLD = gui.Slider(gui.Reference("MISC", "AUTOMATION", "Other"), "ANTIKICK_VOTE_THRESHOLD", "Scramble threshold %:", 80, 1, 100);
 
@@ -15,6 +15,11 @@ function kickEventHandler(event)
     local active_map_name = engine.GetMapName();
 
     if (ANTIKICK_CB:GetValue() == false or self_pid == nil or self == nil or active_map_name == nil) then
+        return;
+    end
+
+    if (event:GetName() == "game_start") then
+        kick_last_command_time = nil;
         return;
     end
 
@@ -44,7 +49,7 @@ function kickEventHandler(event)
 
         local kick_percentage = ((kick_yes_voters - 1) / (kick_potential_votes / 2) * 100);
 
-        if (kick_yes_voters > 0 and kick_potential_votes > 0 and kick_percentage >= ANTIKICK_VOTE_THRESHOLD:GetValue() and globals.CurTime() - kick_last_command_time > 90) then
+        if (kick_yes_voters > 0 and kick_potential_votes > 0 and kick_percentage >= ANTIKICK_VOTE_THRESHOLD:GetValue() and (kick_last_command_time == nil or globals.CurTime() - kick_last_command_time > 120)) then
             if (kick_command_id == 1) then
                 client.Command("callvote SwapTeams");
                 kick_command_id = 2;
@@ -62,6 +67,7 @@ function kickEventHandler(event)
 
 end
 
+client.AllowListener("game_start");
 client.AllowListener("vote_changed");
 client.AllowListener("vote_cast");
 callbacks.Register("FireGameEvent", "antikick_event", kickEventHandler);
